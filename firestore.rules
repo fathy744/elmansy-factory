@@ -1,0 +1,80 @@
+rules_version = '2';
+
+// قواعد أمان قاعدة بيانات مصنع المنسي
+// - صاحب المصنع (المسجّل في meta/owner) له كل الصلاحيات.
+// - كل موظف له وثيقة في members/{uid} فيها perms: { قسم: 'none' | 'view' | 'edit' }.
+// - الموظف الموقوف (active=false) أو اللي ملوش حساب ممنوع من كل حاجة.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function ownerDoc() { return /databases/$(database)/documents/meta/owner; }
+    function memberDoc() { return /databases/$(database)/documents/members/$(request.auth.uid); }
+    function isOwner() { return signedIn() && exists(ownerDoc()) && get(ownerDoc()).data.uid == request.auth.uid; }
+    function active() { return signedIn() && exists(memberDoc()) && get(memberDoc()).data.active == true; }
+    function level(u) { return get(memberDoc()).data.perms.get(u, 'none'); }
+    function canRead(u) { return isOwner() || (active() && level(u) in ['view', 'edit']); }
+    function canEdit(u) { return isOwner() || (active() && level(u) == 'edit'); }
+    function unit(c) { return c == 'att' ? 'attendance' : c; }
+    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    // أي قسم بيحرّك المخزن (حركات، مبيعات، مشتريات، تشغيل، صباغة) يقدر يعدّل الرصيد بس
+    function stockEditor() {
+      return canEdit('moves') || canEdit('sales') || canEdit('purchases') || canEdit('orders') || canEdit('dyeout');
+    }
+
+    // صاحب المصنع: أول حساب يتعمل هو المالك، ومينفعش يتغير بعد كده
+    match /meta/owner {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // الحسابات والصلاحيات: المالك بس اللي يعدّل، والموظف يقرا حسابه هو بس
+    match /members/{uid} {
+      allow read: if isOwner() || (signedIn() && request.auth.uid == uid);
+      allow write: if isOwner();
+    }
+
+    // سجل النشاط: كل واحد يكتب سجله، والمالك يقرا الكل
+    match /log/{uid} {
+      allow read: if isOwner() || (signedIn() && request.auth.uid == uid);
+      allow write: if signedIn() && request.auth.uid == uid && (isOwner() || active());
+    }
+
+    match /requests/{uid} {
+      allow read, write: if isOwner();
+    }
+
+    // بيانات المصنع (الاسم والعنوان)
+    match /config/{d} {
+      allow read: if isOwner() || active();
+      allow write: if canEdit('setup');
+    }
+
+    // الأصناف: صلاحية المخازن، أو تحديث الرصيد فقط من الأقسام اللي بتحرّك المخزن
+    match /items/{id} {
+      allow read: if canRead('items');
+      allow create, delete: if canEdit('items');
+      allow update: if canEdit('items') || (stockEditor() && onlyChanges(['qty', 'wt']));
+    }
+
+    // الماكينات: الصيانة تقدر تحدّث تاريخ آخر صيانة بس
+    match /machines/{id} {
+      allow read: if canRead('machines');
+      allow create, delete: if canEdit('machines');
+      allow update: if canEdit('machines') || (canEdit('maint') && onlyChanges(['lastMaint']));
+    }
+
+    // الخزينة: ترحيل المرتبات مسموح لصلاحية المرتبات
+    match /txns/{id} {
+      allow read: if canRead('txns');
+      allow write: if canEdit('txns') || (id.matches('payroll-.*') && canEdit('payroll'));
+    }
+
+    // باقي الأقسام: الصلاحية بنفس اسم القسم
+    match /{coll}/{id} {
+      allow read: if !(coll in ['meta', 'members', 'log', 'requests', 'config', 'items', 'machines', 'txns']) && canRead(unit(coll));
+      allow write: if !(coll in ['meta', 'members', 'log', 'requests', 'config', 'items', 'machines', 'txns']) && canEdit(unit(coll));
+    }
+  }
+}
