@@ -17,10 +17,10 @@
 window.STANDALONE=true;
 (function(){var res;window.__platformReady=new Promise(function(r){res=r});window.__resolvePlatform=res;
 window.claude={use:function(n){return window.__platformReady.then(function(impl){return impl.use(n)})}};})();
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v=2').catch(function(){})})}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v=3').catch(function(){})})}
 </script>
-<script src="config.js?v=2"></script>
-<script type="module" src="platform.js?v=2"></script>
+<script src="config.js?v=3"></script>
+<script type="module" src="platform.js?v=3"></script>
 <title>المنسي للغزل والنسيج</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
@@ -291,7 +291,7 @@ a.tile:hover{transform:translateY(-2px)}
   .dock button{padding:7px 10px}
   .sheet{bottom:max(96px,calc(env(safe-area-inset-bottom,0px) + 88px))}
 }
-@media (max-width:480px){.bento{grid-template-columns:minmax(0,1fr)}.s2{grid-column:1/-1}.shiftchip{display:none}.dock{gap:0;padding:5px}.dock button{padding:6px 7px;font-size:.62rem;border-radius:14px}.dock button svg{width:19px;height:19px}.node b{font-size:1.5rem}}
+@media (max-width:480px){.mastin{gap:8px}.brand b{font-size:.98rem}.brand{flex:1 1 auto;min-width:0}.brand>span{min-width:0}.brand b{overflow:hidden;text-overflow:ellipsis}.meta{flex-wrap:nowrap;gap:6px}.live{font-size:0;padding:7px;gap:0}.live i{width:8px;height:8px}.me{padding:2px}.me button{font-size:.72rem;padding-inline-start:6px}.bento{grid-template-columns:minmax(0,1fr)}.s2{grid-column:1/-1}.shiftchip{display:none}.dock{gap:0;padding:5px}.dock button{padding:6px 7px;font-size:.62rem;border-radius:14px}.dock button svg{width:19px;height:19px}.node b{font-size:1.5rem}}
 @keyframes spinv{to{background-position:0 28px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>

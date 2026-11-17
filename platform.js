@@ -73,7 +73,7 @@ async function main() {
       set: d => settle(setDoc(r, d)),
       update: d => settle(updateDoc(r, d)),
       delete: () => settle(deleteDoc(r)),
-      onSnapshot: (next, err) => onSnapshot(r, s => next(wrapDoc(s)), e => {
+      onSnapshot: (next, err) => onSnapshot(r, { includeMetadataChanges: true }, s => next(wrapDoc(s)), e => {
         if ((e.code || '').includes('permission')) next({ id: r.id, exists: false, data: () => undefined, metadata: { fromCache: false, hasPendingWrites: false } });
         else err && err(mapErr(e));
       }),
@@ -94,7 +94,7 @@ async function main() {
           return docRef('members/' + S.uid).onSnapshot(d => next(d.exists ? { ...emptyQS, docs: [d], size: 1, empty: false } : emptyQS));
         }
         if (path === 'requests') { setTimeout(() => next(emptyQS), 0); return () => {}; }
-        return onSnapshot(c, s => next(toQS(s)), e => {
+        return onSnapshot(c, { includeMetadataChanges: true }, s => next(toQS(s)), e => {
           if ((e.code || '').includes('permission')) next(emptyQS); else err && err(mapErr(e));
         });
       }
